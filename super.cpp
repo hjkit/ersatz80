@@ -181,9 +181,6 @@ bool execute_supervisor_command(char *cmd_buffer) // return false on exit/quit e
 
 void super_regs(int argc, char *argv[])
 {
-    if(not_in_supervised_mode())
-        return;
-
     // parsing isn't quite right
     // it'd be nice to be able to run: regs hl=1111 bc=2222 de=3333 af=0000 (etc)
     if(argc == 1 && !strcasecmp(argv[0], "show"))
@@ -290,15 +287,8 @@ void super_clk(int argc, char *argv[])
 
 void super_loadrom(int argc, char *argv[])
 {
-    if(argc == 0){
-        report("error: syntax: loadrom [basic|monitor]\r\n");
-    }else if(argc == 1 && !strcasecmp(argv[0], "monitor")){
-        load_program_to_sram(monitor_rom, MONITOR_ROM_START, MONITOR_ROM_SIZE, MONITOR_ROM_START);
-        report("loadrom: monitor loaded at %04x\r\n", MONITOR_ROM_START);
-    }else if(argc == 1 && !strcasecmp(argv[0], "basic")){
-        load_program_to_sram(basic_rom, 0, 16*1024, 0);
-        report("loadrom: basic loaded. entry at 0150.\r\n");
-    }
+    load_program_to_sram(monitor_rom, MONITOR_ROM_START, MONITOR_ROM_SIZE, MONITOR_ROM_START);
+    report("loadrom: monitor loaded at %04x\r\n", MONITOR_ROM_START);
 }
 
 void super_reset(int argc, char *argv[])
@@ -542,9 +532,6 @@ void super_out(int argc, char *argv[])
 
 void super_run(int argc, char *argv[])
 {
-    if(not_in_supervised_mode())
-        return;
-
     if(argc != 1){
         report("error: syntax: run [address]\r\n");
     }else {
@@ -552,7 +539,9 @@ void super_run(int argc, char *argv[])
         if(!parse_int16(argv[0], &address, 16)){
             report("error: bad address\r\n");
         }else{
+            z80_mode_t prev_mode = z80_set_mode(Z80_SUPERVISED);
             z80_set_register(Z80_REG_PC, address);
+            z80_set_mode(prev_mode);
         }
     }
 }
